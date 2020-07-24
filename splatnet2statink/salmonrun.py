@@ -2,7 +2,8 @@
 from __future__ import print_function
 from builtins import input
 import requests, json, uuid
-import dbs
+
+from . import dbs
 
 version = "unknown"
 cookie = ""

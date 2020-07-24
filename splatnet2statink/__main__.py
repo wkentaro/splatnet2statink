@@ -12,16 +12,22 @@ from builtins import str
 from builtins import range
 from past.utils import old_div
 import os.path, argparse, sys
+import pkg_resources
 import requests, json, time, datetime, random, re
 import msgpack, uuid
-import iksm, dbs, salmonrun
 from io import BytesIO
 from operator import itemgetter
 from distutils.version import StrictVersion
 from subprocess import call
 # PIL/Pillow imported at bottom
 
-A_VERSION = "1.5.4"
+from . import iksm
+from . import dbs
+from . import salmonrun
+
+
+distribution = pkg_resources.get_distribution("splatnet2statink")
+A_VERSION = distribution.version
 
 print("splatnet2statink v{}".format(A_VERSION))
 
@@ -254,7 +260,7 @@ def check_for_updates():
 		pass # then we assume there's no update available
 
 def main():
-	'''I/O and setup.'''
+	global filename
 
 	if check_for_updates():
 		sys.exit(0)
@@ -304,7 +310,22 @@ def main():
 	else:
 		m_value = -1
 
-	return m_value, is_s, is_t, is_r, filename, salmon
+	if salmon: # salmon run mode
+		salmonrun.upload_salmon_run(A_VERSION, YOUR_COOKIE, API_KEY, app_head, is_r)
+	else: # normal mode
+		if is_s:
+			from PIL import Image, ImageDraw
+		if m_value != -1: # m flag exists
+			monitor_battles(is_s, is_t, is_r, m_value, debug)
+		elif is_r: # r flag exists without m, so run only the recent battle upload
+			populate_battles(is_s, is_t, is_r, debug)
+		else:
+			n, results = get_num_battles()
+			for i in reversed(range(n)):
+				post_battle(i, results, is_s, is_t, m_value, True if i == 0 else False, debug)
+			if debug:
+				print("")
+
 
 def load_results(calledby=""):
 	'''Returns the data we need from the results JSON, if possible.'''
@@ -1267,20 +1288,6 @@ def blackout(image_result_content, players):
 		pass
 	return scoreboard
 
+
 if __name__ == "__main__":
-	m_value, is_s, is_t, is_r, filename, salmon = main()
-	if salmon: # salmon run mode
-		salmonrun.upload_salmon_run(A_VERSION, YOUR_COOKIE, API_KEY, app_head, is_r)
-	else: # normal mode
-		if is_s:
-			from PIL import Image, ImageDraw
-		if m_value != -1: # m flag exists
-			monitor_battles(is_s, is_t, is_r, m_value, debug)
-		elif is_r: # r flag exists without m, so run only the recent battle upload
-			populate_battles(is_s, is_t, is_r, debug)
-		else:
-			n, results = get_num_battles()
-			for i in reversed(range(n)):
-				post_battle(i, results, is_s, is_t, m_value, True if i == 0 else False, debug)
-			if debug:
-				print("")
+	main()
