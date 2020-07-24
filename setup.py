@@ -8,7 +8,7 @@ import sys
 import setuptools
 
 
-version = "1.5.6"
+version = "1.5.7"
 
 
 if sys.argv[1] == "release":
